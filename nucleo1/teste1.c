@@ -1,4 +1,4 @@
-#include "nucleo1.c"
+#include "nucleo1.h"
 
 int i1,i2,i3;
 
@@ -29,4 +29,4 @@ main(){
     cria_processo(processo2, "proc2");
     cria_processo(processo3, "proc3");
     dispara_sistema();
-}
+}
