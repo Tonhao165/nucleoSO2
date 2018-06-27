@@ -1,4 +1,4 @@
-#include "nucleo2.c"
+#include "nucleo2.h"
 
 
 int i1,i2;
