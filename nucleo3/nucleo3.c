@@ -199,18 +199,6 @@ void far proc_receptor() {
 }
 
 
-int verify(node* lista,int valor)
-{
-	node q=(*lista);
-	do
-	{
-        if(q->valor==valor)
-            return 1;
-		q=q->proximo;
-	}while(q!=(*lista));
-
-    return 0;
-}
 int far envia(nome_destino, p_info) char *nome_destino;
 char *p_info;
 {
@@ -225,7 +213,7 @@ char *p_info;
         if(strcmp(nome_destino,q->nome))
             result=1;
 		q=q->proximo;
-	}while(q!=(*lista));
+	}while(q!=(*prim));
 
     //- se não achou, habilita as interrupções retorna 0; /*fracasso: não achou
     if(result==0){
@@ -250,9 +238,11 @@ char *p_info;
             break;
         }
 		q=q->proximo;
-	}while(q!=(*lista));
+	}while(q!=(*prim));
 
- //!- completa a mensagem
+ Antonio>>>>>>//!- completa a mensagem
+
+
     //- flag=1
         q->flag=1;
 
@@ -276,7 +266,6 @@ char *p_info;
     //- acha próximo processo pronto (p_aux=procura_proximo_ativo());
     PTR_DESC_PROC p_aux, p1;
     p_aux = procura_proximo_ativo();
-
     //- p1=prim;
     p1 = prim;
     //-prim=p_aux
@@ -301,7 +290,7 @@ char *msg;
         //- p1=prim;
          p1=prim;
         //- prim=p_aux;
-        - prim=p_aux;
+         prim=p_aux;
         //- transfer(p1->contexto,prim->contexto);
          transfer(p1->contexto,prim->contexto);
     }
@@ -319,25 +308,30 @@ char *msg;
             break;
         }
 		q=q->proximo;
-	}while(q!=(*lista));
+	}while(q!=(*prim));
 //- copia nome do emissor ;
     strcpy(nome_emissor,prim->nome);
-//!- copia informação da mensagem para msg;
+Antonio>>>>>>//!- copia informação da mensagem para msg;
 //- decrementa qtde_msg_fila;
     p_info->qtde_msg_fila--; /* TODO Nao sei se tem isso no turboC */
 //- faz flag=0;
         q->flag=0;
-//!- localiza descritor do emissor;
+//- localiza descritor do emissor;
+    PTR_DESC_PROC q=prim ;
+    unsigned int result=0;
+	do
+	{
+        if(strcmp(nome_emissor,q->nome))
+            result=1;
+		q=q->proximo;
+	}while(q!=(*prim));
 //- se estado do emissor == “bloqenv”, muda-o para “ativo”;
     if(nome_emissor->estado == bloqenv){
         nome_emissor->estado = ativo
     }
 //- habilita as interrupções;
-    p_info->estado = ativo
+    enable();
 }
-//! Problemas
-// nao entendi oque e[ esse completa mensagem
-// e acho que vai ter que dar malloc para salvar essa mensagem
 
 
 
