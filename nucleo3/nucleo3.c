@@ -2,11 +2,10 @@
         Projeto de SO2
 
     Antônio Eugênio Domingues Silva RA: 161021336
-    Denis Akira Ise Washio          RA:161024181
+    Denis Akira Ise Washio          RA: 161024181
+    Lucas Vinhas
  
 **************************************************/
-
-
 #include <stdio.h>
 #include <string.h>
 #include "system.h"
@@ -26,17 +25,39 @@ typedef union k
 APONTA_REG_CRIT a;
 
 
+/* MENSAGEM */
+typedef struct address{
+    int flag;
+    char nome_emissor[35];
+    char msg[25];
+    struct address *ptr_msg;
+}mensagem;
+
+typedef mensagem
+    *PTR_MENSAGEM;
+
 /* DESCRITOR DE PROCESSOS */
 typedef struct desc_p{
     char nome[35];
-    enum{ativo, terminado} estado;
+    enum{ativo, terminado, bloq_P, bloqenv, bloqrec} estado;
     PTR_DESC contexto;
-    int prioridade;
-    int prior_aux;
     struct desc_p *prox_desc;
+    struct desc_p *fila_sem;
+    PTR_MENSAGEM ptr_msg;
+    int tam_fila;
+    int qtd_msg_fila;
+
 }DESCRITOR_PROC;
 
 typedef DESCRITOR_PROC *PTR_DESC_PROC;
+
+
+/*SEMAFORO pego dos slides */
+typedef struct {
+    int s;
+    PTR_DESC_PROC Q; /* fila */
+}semaforo;
+
 
 
 /* variaveis globais */
@@ -74,12 +95,19 @@ void far volta_dos(){
 	exit(0);
 }
 
+PTR_MENSAGEM cria_fila_mensa(max_fila)
+int max_fila;
+{
+    PTR_MENSAGEM aux=NULL;
+    return NULL;
+
+}
 
 /* cria_processo */
-void far cria_processo(proc, nome, prior)
+void far cria_processo(proc, nome, max_fila)
 void far (*proc)();
 char nome[35];
-int prior;
+int max_fila;
 {
     PTR_DESC_PROC processo;
     PTR_DESC_PROC p;
@@ -92,8 +120,10 @@ int prior;
     strcpy(processo->nome, nome);
     processo->estado = ativo;
     processo->contexto = cria_desc();
-    processo->prioridade = prior;
-    processo->prior_aux = 0;
+    processo->fila_sem = NULL;
+    processo->tam_fila=max_fila;
+    processo->qtd_msg_fila = 0;
+    processo->ptr_msg=cria_fila_mensa(max_fila);
     newprocess(proc, processo->contexto);
 
     if (prim){ /* Se tiver lista ja,*/
@@ -126,22 +156,12 @@ void far escalador(){
     a.x.bx1 = _BX;
     a.x.es1 = _ES;
     while(1){
-
         iotransfer();
         disable();
-
-        if(!*a.y){
-            prim->prior_aux++;
-            if(prim->prior_aux >= prim->prioridade){
-                if((prim = procura_proximo_ativo()) == NULL)
-                    volta_dos();
-                prim->prior_aux=0;
-                printf("\nEscalador\n");
-                p_est->p_destino = prim->contexto;
-            }
-        }
+        if((prim = procura_proximo_ativo()) == NULL)
+            volta_dos();
+        p_est->p_destino = prim->contexto;
         enable();
-
     }
 }
 
@@ -160,7 +180,6 @@ void far dispara_sistema(){
 
 void far termina_processo(){
     PTR_DESC_PROC p_aux, p1;
-    printf("\nTerminou processo %s\n", prim->nome);
     disable();
     prim->estado = terminado;
     
@@ -174,5 +193,192 @@ void far termina_processo(){
     transfer(p1->contexto,prim->contexto);
 }
 
+void far inicia_semaforo(sem, n)
+semaforo *sem;
+int n;
+{
+    sem->s = n;
+    sem->Q = NULL;
+}
 
-
+void far down(sem)
+semaforo *sem;
+{
+    PTR_DESC_PROC aux, aux2;
+    /*printf("\nSEMAFORO\nS==%d",sem->s);
+    aux = sem->Q;
+    printf("  sem->Q = ");
+    while(aux){
+        printf("%s -> ", aux->nome);
+        aux = aux->fila_sem;
+    }*/
+    disable();
+    if(sem->s > 0){
+        sem->s--;
+        enable();
+    }
+    else{
+        prim->estado = bloq_P; /* Bloqueia processo atual */
+        if (sem->Q == NULL){
+            sem->Q = prim; /* insere na fila */
+        }
+        else{
+            aux = sem->Q;
+            while(aux->fila_sem){
+                aux = aux->fila_sem;
+            }
+            aux->fila_sem = prim; /* insere na fila */
+        }
+
+        aux2 = prim;
+        prim = procura_proximo_ativo();
+        transfer(aux2->contexto, prim->contexto);
+    }
+}
+
+void far up(sem)
+semaforo *sem;
+{
+    PTR_DESC_PROC aux;
+    disable();
+    if (sem->Q == NULL){
+        sem->s++;
+    }
+    else{
+        
+        aux = sem->Q; /* pega primeiro da fila*/
+        aux->estado = ativo;
+        sem->Q = aux->fila_sem; /*passa a fila pro proximo*/
+        aux->fila_sem = NULL; /*anula o campo desse processo*/
+    }
+    enable();
+}
+
+int far envia(nome_destino, p_info)
+char *nome_destino;
+char *p_info;
+{
+    PTR_DESC_PROC aux, p_aux, p1;
+    PTR_MENSAGEM m_aux, mensagem;
+    disable();
+    if (aux = procura_proximo_ativo() == NULL) {
+        enable();
+        printf("lista vazia");
+        return 0;
+    } else {
+        /* Fica em loop enquanto o prxóximo descritor não for o primeiro da fila. */
+        while(aux->prox_desc) {
+            printf("está em loop");
+            if(strcmp(nome_destino,aux->nome)){
+                printf("encontrou destino");
+                if(aux->tam_fila==aux->qtd_msg_fila) {
+                    printf("Fila cheia");
+                    enable();
+                    return 1;
+                }
+
+                /**
+                 * O loop percorre as mensagens e busca uma com flag=0.
+                 * Se encontra, troca o flag para 1 e salva o conteúdo da mensagem.
+                 */
+                m_aux = aux->ptr_msg;
+                while(m_aux) {
+                    if(m_aux->flag==0){
+                        m_aux->flag=1;
+                        strcpy(m_aux->nome_emissor, prim->nome);
+                        strcpy(m_aux->msg, p_info);
+                        aux->qtd_msg_fila++;
+                        if(aux->estado==bloqrec) {
+                            aux->estado=ativo;
+                        }
+                        prim->estado=bloqenv;
+                        p_aux = procura_proximo_ativo();
+                        p1=prim;
+                        prim=p_aux;
+                        enable();
+                        transfer(p1->contexto, prim->contexto);
+                        return 2;                   
+                    }
+                    m_aux = m_aux->ptr_msg;
+                }
+                
+                if((mensagem=(PTR_MENSAGEM)malloc(sizeof(mensagem)))==NULL)
+                {
+                    printf("\n\tMemoria Insuficiente para alocacao de mensagem\n");
+                    exit(1);
+                }
+                mensagem->flag=1;
+                strcpy(mensagem->nome_emissor, prim->nome);
+                strcpy(mensagem->msg, p_info);
+                m_aux = aux->ptr_msg;
+                mensagem->ptr_msg = NULL;
+                while(m_aux->ptr_msg) {
+                    m_aux = m_aux->ptr_msg;
+                }
+                m_aux->ptr_msg = mensagem;
+                aux->qtd_msg_fila++;
+                if(aux->estado==bloqrec) {
+                    aux->estado=ativo;
+                }
+                prim->estado=bloqenv;
+                p_aux = procura_proximo_ativo();
+                p1=prim;
+                prim=p_aux;
+                enable();
+                transfer(p1->contexto, prim->contexto);
+                return 2;
+
+            }
+            aux = aux->prox_desc;
+        }
+        enable();
+    }
+
+}
+
+void far recebe(nome_emissor, msg)
+char *nome_emissor;
+char *msg;
+{
+    PTR_DESC_PROC p1, p_aux, aux;
+    PTR_MENSAGEM m_aux;
+    disable();
+    if(prim->qtd_msg_fila==prim->tam_fila) {
+        prim->estado = bloqrec;
+        p_aux = procura_proximo_ativo();
+        p1=prim;
+        prim=p_aux;
+        transfer(p1->contexto, prim->contexto);
+    } else {
+        m_aux = prim->ptr_msg;
+        while(m_aux) {
+
+            if(m_aux->flag==1) {
+                strcpy(nome_emissor,m_aux->nome_emissor);
+                strcpy(msg, m_aux->msg);
+                m_aux->flag=0;
+                if (aux = procura_proximo_ativo() == NULL) {
+                    enable();
+                    printf("lista vazia no recebimento");
+                    return;
+                } else {
+                    /* Fica em loop enquanto o prxóximo descritor não for o primeiro da fila. */
+                    while(aux->prox_desc != prim) {
+                        if(nome_emissor==aux->nome){
+                            printf("encontrou emissor");
+                            if(aux->estado==bloqenv){
+                                aux->estado = ativo;
+                            }
+                        }
+                    }
+                }
+                enable();
+                return;
+            }
+
+            m_aux = m_aux->ptr_msg;
+        }
+    }
+    enable();
+
+}
