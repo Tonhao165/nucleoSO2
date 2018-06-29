@@ -6,7 +6,7 @@
 **************************************************/
 #include <stdio.h>
 #include <string.h>
-#include "system.c"
+#include "system.h"
 
 /* pego dos slides */
 typedef struct registros
@@ -72,6 +72,7 @@ void far volta_dos(){
     disable();
 	setvect(8, p_est->int_anterior);
 	enable();
+    printf("\nVOLTANDO PARA DOS, APERTE QUALQUER TECLA!");
 	getch();
 	exit(0);
 }
@@ -175,6 +176,13 @@ void far down(sem)
 semaforo *sem;
 {
     PTR_DESC_PROC aux, aux2;
+    /*printf("\nSEMAFORO\nS==%d",sem->s);
+    aux = sem->Q;
+    printf("  sem->Q = ");
+    while(aux){
+        printf("%s -> ", aux->nome);
+        aux = aux->fila_sem;
+    }*/
     disable();
     if(sem->s > 0){
         sem->s--;
@@ -182,7 +190,6 @@ semaforo *sem;
     }
     else{
         prim->estado = bloq_P; /* Bloqueia processo atual */
-    
         if (sem->Q == NULL){
             sem->Q = prim; /* insere na fila */
         }
@@ -209,8 +216,9 @@ semaforo *sem;
         sem->s++;
     }
     else{
+        
         aux = sem->Q; /* pega primeiro da fila*/
-        aux->estado = ativo; /*ativa*/
+        aux->estado = ativo;
         sem->Q = aux->fila_sem; /*passa a fila pro proximo*/
         aux->fila_sem = NULL; /*anula o campo desse processo*/
     }

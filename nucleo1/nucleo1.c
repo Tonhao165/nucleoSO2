@@ -9,7 +9,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "system.c"
+#include "system.h"
 
 /* pego dos slides */
 typedef struct registros

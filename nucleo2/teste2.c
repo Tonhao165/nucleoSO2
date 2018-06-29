@@ -1,4 +1,4 @@
-#include "nucleo2.c"
+#include "nucleo2.h"
 
 
 int i1,i2;
@@ -11,17 +11,17 @@ semaforo cheio;
 semaforo vazio;
 
 void far produtor(){
-    for(;i1<150;i1++){ /*i1 sera usado como int para buffer*/
-        /* down(&vazio);*/
-        /* down(&mutex);*/
-
+    for(;i1<200;i1++){ /*i1 sera usado como int para buffer*/
+        down(&vazio); 
+        down(&mutex); 
         buffer[buffer_final] = i1;
+        printf("\nproduziu %d", i1);
         buffer_final++;
         if (buffer_final == 99)
             buffer_final = 0;
 
-        /* up(&mutex);*/
-        /* up(&cheio);*/
+        up(&mutex);
+        up(&cheio);
     }
     termina_processo();
 }
@@ -29,19 +29,19 @@ void far produtor(){
 void far consumidor(){
     int info;
 
-    for(;i2<150;i2++){
-        /* down(&cheio);*/
-        /* down(mutex);*/
+    for(;i2<300;i2++){
+        if (i2 > 100){
+            down(&cheio);
+            down(&mutex);
+            info = buffer[buffer_inicio]; /* pega dado do buffer */
+            buffer_inicio++;
+            if (buffer_inicio == 99)
+                buffer_inicio = 0;
+            printf("\nconsumiu %d ", info);
 
-        info = buffer[buffer_inicio]; /* pega dado do buffer */
-        buffer_inicio++;
-        if (buffer_inicio == 99)
-            buffer_inicio = 0;
-        printf("%d ", info);
-
-        /* up(&mutex);*/
-        /* up(&vazio);*/
-
+            up(&mutex);
+            up(&vazio);
+        }
     }
     termina_processo();
 }
@@ -55,5 +55,6 @@ main(){
                                         /* pois esta vazio */
     cria_processo(produtor, "produtor"); 
     cria_processo(consumidor, "consumidor");
+    
     dispara_sistema();
 }
