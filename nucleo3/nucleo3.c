@@ -29,7 +29,7 @@ typedef struct address {
 
 } mensagem;
 
-typedef mensagem *ptr_msg;
+typedef mensagem *PTR_MENSAGEM;
 
 /* DESCRITOR DE PROCESSOS */
 
@@ -37,8 +37,7 @@ typedef struct desc_p {
     char nome[35];
     enum { ativo, bloqrec, bloqenv, terminado, bloq_P } estado;
     PTR_DESC contexto;
-    /* PTR_MENSAGEM ptr_msg; */
-    ptr_msg ptr_msg_p;
+    PTR_MENSAGEM ptr_msg;
     int tam_fila; /* tam. Max fila*/
     int qtde_msg_fila;
     struct desc_p *prox_desc;
@@ -84,16 +83,38 @@ void far volta_dos() {
     exit(0);
 }
 
-void far cria_processo(proc, nome) void far (*proc)();
+PTR_MENSAGEM far cria_mensagem(){ /*cria msg com flag =0*/
+    PTR_MENSAGEM auxmsg;
+    if ((auxmsg = (PTR_MENSAGEM)malloc(sizeof(mensagem))) == NULL) {
+        printf("\n\tMemoria Insuficiente para alocacao de mensagem\n");
+        exit(1);
+    }
+    auxmsg->flag = 0;
+    auxmsg->ptr_msg = NULL;
+    return auxmsg;
+}
+
+PTR_MENSAGEM far cria_fila_mensa(max_fila)
+int max_fila;
+{
+    PTR_MENSAGEM auxmsg, primeiramsg, mensagem;
+    int i;
+    
+    primeiramsg = cria_mensagem();
+    auxmsg = primeiramsg;
+    for(i=0;i<max_fila-1;i++){
+        auxmsg->ptr_msg = cria_mensagem();
+        auxmsg = auxmsg->ptr_msg;
+    }
+
+    return primeiramsg;
+}
+
+void far cria_processo(proc, nome, max_fila) 
+void far (*proc)();
 char nome[35];
 int max_fila;
 {
-
-    dp_aux->tam_fila = max_fila;
-    dp_aux->qtde_msg_fila = 0; /* numero de mensagems recebidas=0  */
-    /* cria a fila, todos com flag=0 */
-    dp_aux->ptr_msg = cria_fila_mensa(max_fila);
-
     PTR_DESC_PROC processo;
     PTR_DESC_PROC p;
 
@@ -105,13 +126,16 @@ int max_fila;
     processo->estado = ativo;
     processo->contexto = cria_desc();
     processo->fila_sem = NULL;
+    processo->tam_fila = max_fila;
+    processo->qtde_msg_fila = 0;
+    processo->ptr_msg = cria_fila_mensa(max_fila); /* inicia fila  de mensagems*/
     newprocess(proc, processo->contexto);
 
     if (prim) { /* Se tiver lista ja,*/
         processo->prox_desc = prim;
 
         p = prim;
-        while (p->prox_desc != prim) { /*encontra o ultimo da lista */
+        while(p->prox_desc != prim) { /*encontra o ultimo da lista */
             p = p->prox_desc;
         }
         p->prox_desc = processo;
@@ -139,6 +163,7 @@ void far escalador() {
         disable();
         if ((prim = procura_proximo_ativo()) == NULL)
             volta_dos();
+        /*printf("\nPROCESSO ATUAL  == %s", prim->nome);*/
         p_est->p_destino = prim->contexto;
         enable();
     }
@@ -172,164 +197,119 @@ void far termina_processo() {
     transfer(p1->contexto, prim->contexto);
 }
 
-void far proc_emissor() { // faltou colocar o far do void que nao ta funcionando
-    int i;
-    while (1) {
-        strcpy(msg, ...); /* produz uma mensagem */
-        i = envia("proc_rec", msg);
-        if (i == 0) {
-            printf("Não achou destino !Abortar ");
-            termina_processo();
-        } else if (i == 1) /* fila do destino cheia */
-        {
-            while (i == 1) {
-                i = envia("proc_rec", msg)
-            };
-        };
-    }
-}
-
-void far proc_receptor() {
-    char emissor[35];
-    char msg[25];
-    while (1) {
-        recebe(emissor, msg);
-        printf("o processo destino processo % s\n", msg, emissor);
-    }
-}
-
-
-int far envia(nome_destino, p_info) char *nome_destino;
+int far envia(nome_destino, p_info)
+char *nome_destino;
 char *p_info;
 {
-
-    //- desabilita interrupções;
-    disable();
-    //- procura descritor do destino da mensagem na fila dos prontos;
     PTR_DESC_PROC q=prim ;
-    unsigned int result=0;
-	do
-	{
-        if(strcmp(nome_destino,q->nome))
-            result=1;
-		q=q->proximo;
-	}while(q!=(*prim));
-
-    //- se não achou, habilita as interrupções retorna 0; /*fracasso: não achou
-    if(result==0){
-        enable();
-        return 0;
-    }
-
-    //- se fila de mensagens do destino estiver cheia,habilita as interrupções e
-    //retorna 1; /* fracasso: fila cheia */
-    if(p_info->qtde_msg_fila==p_info->tam_fila){
-        p_info->estado = ativo;
-        return 1;
-    }
-
-    //- localiza uma mensagem vazia (flag==0);
-    ptr_msg q=nome_destino->ptr_msg_p ;
-    unsigned int result=0;
-	do
-	{
-        if(q->flag==0){
-            result=1;
+    PTR_DESC_PROC p_aux, p1;
+    PTR_MENSAGEM msg;
+    /* desabilita interrupções;*/
+    disable();
+    /* procura descritor do destino da mensagem na fila dos prontos;*/
+    
+	while(q){
+        if(strcmp(nome_destino,q->nome) == 0){
             break;
         }
-		q=q->proximo;
-	}while(q!=(*prim));
-
- Antonio>>>>>>//!- completa a mensagem
-
-
-    //- flag=1
-        q->flag=1;
-
-    //- copia nome_emissor
-    strcpy(nome_emissor,prim->nome);
-
-    //- copia mensagem
-    strcpy(mensa, p_info);
-
-    //- incrementa a qtde_msg_fila;
-    p_info->qtde_msg_fila++; /* TODO Nao sei se tem isso no turboC */
-
-    //- se estado do destino == "bloqrec", muda-o para "ativo";
-    if(nome_destino->estado == bloqrec){
-        nome_destino->estado = ativo
+        q = q->prox_desc;
+        if (q == prim){ /* se não achou, habilita as interrupções retorna 0; fracasso: não achou */
+            enable();
+            return 0;
+        }
     }
-
-    //- muda estado do processo atual para “bloqenv”;
-    p_info->estado=bloqenv
-
-    //- acha próximo processo pronto (p_aux=procura_proximo_ativo());
-    PTR_DESC_PROC p_aux, p1;
+    if(q->qtde_msg_fila == q->tam_fila){
+        enable();
+        return 1;
+    }
+    /* localiza uma mensagem vazia (flag==0);*/
+    msg = q->ptr_msg;
+    while(msg){
+        if (msg->flag == 0)
+            break;
+        msg = msg->ptr_msg;
+    }
+    /*- completa a mensagem*/
+    strcpy(msg->mensa, p_info);
+    /* copia nome_emissor*/
+    strcpy(msg->nome_emissor,prim->nome);
+    /* flag=1*/
+    msg->flag = 1;
+    /* incrementa a qtde_msg_fila;*/
+    q->qtde_msg_fila++;
+    /* se estado do destino == "bloqrec", muda-o para "ativo";*/
+    if(q->estado == bloqrec){
+        q->estado = ativo;
+    }
+    /* muda estado do processo atual para “bloqenv”;*/
+    prim->estado=bloqenv;
+    /* acha próximo processo pronto (p_aux=procura_proximo_ativo());*/
     p_aux = procura_proximo_ativo();
-    //- p1=prim;
+    /* p1=prim;*/
     p1 = prim;
-    //-prim=p_aux
+    /*prim=p_aux*/
     prim = p_aux;
-    //- transfer(p1->contexto,prim->contexto);
+    /* transfer(p1->contexto,prim->contexto);*/
     transfer(p1->contexto,prim->contexto);
-    //- retorna 2; /*sucesso*/
+    /* retorna 2; /*sucesso */
     return 2;
 }
+
 void far recebe(nome_emissor, msg)
 char *nome_emissor;
 char *msg;
 {
-//- desabilita as interrupções;
-    p_info->estado = bloqenv
-//- se fila de msg estiver cheia então:
-    if(p_info->qtde_msg_fila==p_info->tam_fila){
-        //- muda estado do processo atual para “bloqrec”;
-        p_info->estado = bloqrec;
-        //- acha próximo processo pronto(p_aux=procura_próximo_ativo());
-        (p_aux=procura_próximo_ativo());
-        //- p1=prim;
-         p1=prim;
-        //- prim=p_aux;
-         prim=p_aux;
-        //- transfer(p1->contexto,prim->contexto);
-         transfer(p1->contexto,prim->contexto);
+    PTR_DESC_PROC p_aux, p1;
+    PTR_MENSAGEM p;
+    PTR_DESC_PROC desc_emissor = prim;
+
+    /* desabilita as interrupções;*/
+    disable();
+    /* se fila de msg estiver vazia então:*/
+    if(prim->qtde_msg_fila == 0){
+        /* muda estado do processo atual para “bloqrec”;*/
+        prim->estado = bloqrec;
+        /* acha próximo processo pronto(p_aux=procura_próximo_ativo());*/
+        
+        p_aux = procura_proximo_ativo();
+        /* p1=prim;*/
+        p1=prim;
+        /* prim=p_aux;*/
+        prim=p_aux;
+        /* transfer(p1->contexto,prim->contexto);*/
+        transfer(p1->contexto,prim->contexto);
     }
 
-/* existe mensagem na fila */
-//- desabilita as interrupções;
-    p_info->estado = bloqenv
-//- localiza a primeira mensagem cheia (flag== 1);
-    ptr_msg q=nome_destino->ptr_msg_p ;
-    unsigned int result=0;
-	do
-	{
-        if(q->flag==1){
-            result=1;
+    /* localiza a primeira mensagem cheia (flag== 1);*/
+    
+    p = prim->ptr_msg;
+    while(p){
+        if (p->flag == 1)
             break;
-        }
-		q=q->proximo;
-	}while(q!=(*prim));
-//- copia nome do emissor ;
-    strcpy(nome_emissor,prim->nome);
-Antonio>>>>>>//!- copia informação da mensagem para msg;
-//- decrementa qtde_msg_fila;
-    p_info->qtde_msg_fila--; /* TODO Nao sei se tem isso no turboC */
-//- faz flag=0;
-        q->flag=0;
-//- localiza descritor do emissor;
-    PTR_DESC_PROC q=prim ;
-    unsigned int result=0;
-	do
-	{
-        if(strcmp(nome_emissor,q->nome))
-            result=1;
-		q=q->proximo;
-	}while(q!=(*prim));
-//- se estado do emissor == “bloqenv”, muda-o para “ativo”;
-    if(nome_emissor->estado == bloqenv){
-        nome_emissor->estado = ativo
+        p = p->ptr_msg;
     }
-//- habilita as interrupções;
+
+
+    /* copia nome do emissor ;*/
+    strcpy(nome_emissor, p->nome_emissor);
+    /* copia informação da mensagem para msg;*/
+    strcpy(msg, p->mensa);
+    /* decrementa qtde_msg_fila;*/
+    prim->qtde_msg_fila--; /* TODO Nao sei se tem isso no turboC */
+    /* faz flag=0;*/
+    p->flag=0;
+    /* localiza descritor do emissor;*/
+    while(desc_emissor){
+        if (strcmp(desc_emissor->nome,nome_emissor) == 0)
+            break;
+        desc_emissor = desc_emissor->prox_desc;
+    }
+    
+    /* se estado do emissor == “bloqenv”, muda-o para “ativo”;*/
+    if(desc_emissor->estado == bloqenv){
+        desc_emissor->estado = ativo;
+    }
+    /* habilita as interrupções;*/
     enable();
 }
 

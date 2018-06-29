@@ -1,32 +1,68 @@
-#include "nucleo1.h"
+#include "nucleo3.h"
 
-int i1,i2,i3;
+void far proc_emissor()
+{ 
+    int i;
+    int k;
+    char msg[35];
 
-void far processo1(){
-    for(;i1<4999;i1++){
-        printf("1");
+    char emissor[35];
+    char msgrecebida[35];
+
+    for(k=0;k<100;k++){
+        /* produz mesnagem*/
+        sprintf(msg, "MSG %d", k);
+        i = envia("proc_rec",msg);
+        if (i==0) {
+            printf("Não achou destino! Abortar");
+            termina_processo();
+        }
+        else if (i ==1){
+            /* fila do destino cheia */ 
+            while (i == 1) { 
+                printf("\nLoop enviando mensagem!");
+                i = envia("proc_rec",msg);
+            };
+        }
+
+        recebe(emissor, msgrecebida);
+        printf("\nEMISSOR recebeu %s do processo %s",msgrecebida,emissor);
     }
     termina_processo();
 }
 
-void far processo2(){
-    for(;i2<4999;i2++){
-        printf("2");
+void far proc_receptor()
+{
+    char emissor[35];
+    char msg[25];
+    int i,k;
+    
+    for(i=0;i<100;i++)
+    {
+        recebe(emissor,msg);
+        printf("\nRECEPTOR recebeu %s do processo %s",msg,emissor);
+        k = envia("proc_em",msg);
+        if (k==0) {
+            printf("Não achou destino! Abortar");
+            termina_processo();
+        }
+        else if (k ==1){
+            /* fila do destino cheia */ 
+            while (k == 1) { 
+                printf("\nLoop enviando mensagem!");
+                k = envia("proc_rec",msg);
+            };
+        }
     }
     termina_processo();
 }
 
-void far processo3(){
-    for (;i3<5999;i3++){
-        printf("3");
-    }
-    termina_processo();
-}
-
-
-main(){
-    cria_processo(processo1, "proc1");
-    cria_processo(processo2, "proc2");
-    cria_processo(processo3, "proc3");
+/* Programa Principal */
+main()
+{
+    /* cria processos*/
+    cria_processo(proc_emissor,"proc_em", 10);
+    cria_processo(proc_receptor,"proc_rec", 10);
+    /* transfere controle para o escalador */
     dispara_sistema();
-}
+}
