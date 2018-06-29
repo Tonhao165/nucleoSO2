@@ -2,7 +2,9 @@
         Projeto de SO2
 
     Antônio Eugênio Domingues Silva RA: 161021336
-
+    Denis Akira Ise Washio          RA: 161024181
+    Lucas Vinhas
+ 
 **************************************************/
 
 #include "system.h"
@@ -111,6 +113,7 @@ int max_fila;
 }
 
 void far cria_processo(proc, nome, max_fila) 
+
 void far (*proc)();
 char nome[35];
 int max_fila;
@@ -312,12 +315,3 @@ char *msg;
     /* habilita as interrupções;*/
     enable();
 }
-
-
-
-
-
-
-
-
-

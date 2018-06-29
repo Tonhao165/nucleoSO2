@@ -31,6 +31,8 @@ typedef struct desc_p{
     char nome[35];
     enum{ativo, terminado} estado;
     PTR_DESC contexto;
+    int prioridade;
+    int prior_aux;
     struct desc_p *prox_desc;
 }DESCRITOR_PROC;
 
@@ -74,9 +76,10 @@ void far volta_dos(){
 
 
 /* cria_processo */
-void far cria_processo(proc, nome)
+void far cria_processo(proc, nome, prior)
 void far (*proc)();
 char nome[35];
+int prior;
 {
     PTR_DESC_PROC processo;
     PTR_DESC_PROC p;
@@ -89,6 +92,8 @@ char nome[35];
     strcpy(processo->nome, nome);
     processo->estado = ativo;
     processo->contexto = cria_desc();
+    processo->prioridade = prior;
+    processo->prior_aux = 0;
     newprocess(proc, processo->contexto);
 
     if (prim){ /* Se tiver lista ja,*/
@@ -121,12 +126,22 @@ void far escalador(){
     a.x.bx1 = _BX;
     a.x.es1 = _ES;
     while(1){
+
         iotransfer();
         disable();
-        if((prim = procura_proximo_ativo()) == NULL)
-            volta_dos();
-        p_est->p_destino = prim->contexto;
+
+        if(!*a.y){
+            prim->prior_aux++;
+            if(prim->prior_aux >= prim->prioridade){
+                if((prim = procura_proximo_ativo()) == NULL)
+                    volta_dos();
+                prim->prior_aux=0;
+                printf("\nEscalador\n");
+                p_est->p_destino = prim->contexto;
+            }
+        }
         enable();
+
     }
 }
 
@@ -145,6 +160,7 @@ void far dispara_sistema(){
 
 void far termina_processo(){
     PTR_DESC_PROC p_aux, p1;
+    printf("\nTerminou processo %s\n", prim->nome);
     disable();
     prim->estado = terminado;
     
