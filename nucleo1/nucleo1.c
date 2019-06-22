@@ -1,8 +1,8 @@
 /*************************************************
-        Projeto de SO2
+    Projeto de SO2
 
-    Antônio Eugênio Domingues Silva RA: 161021336
-    Denis Akira Ise Washio          RA:161024181
+    Antônio Eugênio Domingues Silva     RA: 161021336
+    Thiago Hoffart Vieira               RA: 161026524
  
 **************************************************/
 
@@ -86,6 +86,7 @@ char nome[35];
         printf("\n\tMemoria Insuficiente para alocacao de descritor\n");
         exit(1);
     }
+    
     strcpy(processo->nome, nome);
     processo->estado = ativo;
     processo->contexto = cria_desc();
@@ -115,17 +116,22 @@ void far escalador(){
     p_est->p_origem = d_esc;
     p_est->p_destino = prim->contexto;
     p_est->num_vetor = 8;
+    /* Entrando na regiao crítica do DOS */
     _AH = 0x34;
     _AL = 0x00;
     geninterrupt(0x21);
     a.x.bx1 = _BX;
     a.x.es1 = _ES;
     while(1){
+
         iotransfer();
         disable();
-        if((prim = procura_proximo_ativo()) == NULL)
-            volta_dos();
-        p_est->p_destino = prim->contexto;
+
+        if(!*a.y) {
+            if((prim = procura_proximo_ativo()) == NULL)
+                volta_dos();
+            p_est->p_destino = prim->contexto;
+        }
         enable();
     }
 }
@@ -157,6 +163,3 @@ void far termina_processo(){
     }
     transfer(p1->contexto,prim->contexto);
 }
-
-
-

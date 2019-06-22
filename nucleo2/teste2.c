@@ -9,12 +9,14 @@ int buffer[100]; /*max=100*/
 semaforo mutex;
 semaforo cheio;
 semaforo vazio;
+FILE *arq_saida;
 
 void far produtor(){
-    for(;i1<200;i1++){ /*i1 sera usado como int para buffer*/
+    for(;i1<100;i1++){ /*i1 sera usado como int para buffer*/
         down(&vazio); 
         down(&mutex); 
         buffer[buffer_final] = i1;
+        fprintf(arq_saida, "[PRODUTOR] Buffer[%d] = %d\n", buffer_final, i1 );
         printf("\nproduziu %d", i1);
         buffer_final++;
         if (buffer_final == 99)
@@ -23,38 +25,50 @@ void far produtor(){
         up(&mutex);
         up(&cheio);
     }
+    printf("\nproduziu FIM");
+    fprintf(arq_saida, "[PRODUTOR] FIM");
     termina_processo();
 }
 
 void far consumidor(){
     int info;
 
-    for(;i2<300;i2++){
-        if (i2 > 100){
+    for(;i2<150;i2++){
+        if (i2 > 50){
             down(&cheio);
             down(&mutex);
             info = buffer[buffer_inicio]; /* pega dado do buffer */
             buffer_inicio++;
             if (buffer_inicio == 99)
                 buffer_inicio = 0;
+            fprintf(arq_saida, "[CONSUMIDOR] Buffer[%d] = %d\n", buffer_inicio, info);
             printf("\nconsumiu %d ", info);
 
             up(&mutex);
             up(&vazio);
         }
     }
+    printf("\nconsumidor FIM");
+    fprintf(arq_saida, "[CONSUMIDOR] FIM");
+    printf("\n[ARQUIVO TESTE2.TXT GERADO]");
     termina_processo();
 }
 
 
 
 main(){
+    /* Abre o arquivo resultado */
+    if ((arq_saida = fopen("TESTE2.TXT", "w")) == NULL) {
+		printf("\nO arquivo não pode ser aberto");
+		exit(1);
+	}
+
     inicia_semaforo(&mutex, 1); /* iniciado como aberto pra acesso*/
     inicia_semaforo(&cheio, 0);
     inicia_semaforo(&vazio, 100); /* inicia como maximo do buffer, */
                                         /* pois esta vazio */
     cria_processo(produtor, "produtor"); 
     cria_processo(consumidor, "consumidor");
-    
+
     dispara_sistema();
 }

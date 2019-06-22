@@ -1,7 +1,8 @@
 /*************************************************
-        Projeto de SO2
+    Projeto de SO2
 
-    Antônio Eugênio Domingues Silva RA: 161021336
+    Antônio Eugênio Domingues Silva     RA: 161021336
+    Thiago Hoffart Vieira               RA: 161026524
  
 **************************************************/
 #include <stdio.h>
@@ -216,7 +217,6 @@ semaforo *sem;
         sem->s++;
     }
     else{
-        
         aux = sem->Q; /* pega primeiro da fila*/
         aux->estado = ativo;
         sem->Q = aux->fila_sem; /*passa a fila pro proximo*/

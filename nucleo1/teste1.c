@@ -29,4 +29,4 @@ main(){
     cria_processo(processo2, "proc2");
     cria_processo(processo3, "proc3");
     dispara_sistema();
-}
+}
