@@ -17,7 +17,7 @@ void far produtor(){
         down(&mutex); 
         buffer[buffer_final] = i1;
         fprintf(arq_saida, "[PRODUTOR] Buffer[%d] = %d\n", buffer_final, i1 );
-        printf("\nproduziu %d", i1);
+        printf("[PRODUTOR] Buffer[%d] = %d\n", buffer_final, i1 );
         buffer_final++;
         if (buffer_final == 99)
             buffer_final = 0;
@@ -25,8 +25,8 @@ void far produtor(){
         up(&mutex);
         up(&cheio);
     }
-    printf("\nproduziu FIM");
-    fprintf(arq_saida, "[PRODUTOR] FIM");
+    printf("[PRODUTOR] FIM\n");
+    fprintf(arq_saida, "[PRODUTOR] FIM\n");
     termina_processo();
 }
 
@@ -42,15 +42,16 @@ void far consumidor(){
             if (buffer_inicio == 99)
                 buffer_inicio = 0;
             fprintf(arq_saida, "[CONSUMIDOR] Buffer[%d] = %d\n", buffer_inicio, info);
-            printf("\nconsumiu %d ", info);
+            printf("[PRODUTOR] Buffer[%d] = %d\n", buffer_final, i1 );
 
             up(&mutex);
             up(&vazio);
         }
     }
-    printf("\nconsumidor FIM");
-    fprintf(arq_saida, "[CONSUMIDOR] FIM");
-    printf("\n[ARQUIVO TESTE2.TXT GERADO]");
+    printf("[CONSUMIDOR] FIM\n");
+    fprintf(arq_saida, "[CONSUMIDOR] FIM\n");
+    printf("[ARQUIVO TESTE2.TXT GERADO]\n");
+    fclose(arq_saida);
     termina_processo();
 }
 

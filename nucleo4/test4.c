@@ -1,8 +1,9 @@
 /*************************************************
-        Projeto de SO2
+    Projeto de SO2
 
-    Antônio Eugênio Domingues Silva RA: 161021336
-    Denis Akira Ise Washio          RA:161024181
+    Antônio Eugênio Domingues Silva     RA: 161021336
+    Thiago Hoffart Vieira               RA: 161026524
+    Lucas Vinhas Gianoglio              RA: 161023584
  
 **************************************************/
 

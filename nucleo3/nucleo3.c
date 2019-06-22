@@ -1,9 +1,9 @@
 /*************************************************
-        Projeto de SO2
+    Projeto de SO2
 
-    Antônio Eugênio Domingues Silva RA: 161021336
-    Denis Akira Ise Washio          RA: 161024181
-    Lucas Vinhas
+    Antônio Eugênio Domingues Silva     RA: 161021336
+    Thiago Hoffart Vieira               RA: 161026524
+    Lucas Vinhas Gianoglio              RA: 161023584
  
 **************************************************/
 
@@ -28,7 +28,6 @@ typedef struct address {
     char nome_emissor[35];
     char mensa[25];
     struct address *ptr_msg;
-
 } mensagem;
 
 typedef mensagem *PTR_MENSAGEM;
@@ -164,10 +163,12 @@ void far escalador() {
     while (1) {
         iotransfer();
         disable();
-        if ((prim = procura_proximo_ativo()) == NULL)
-            volta_dos();
-        /*printf("\nPROCESSO ATUAL  == %s", prim->nome);*/
-        p_est->p_destino = prim->contexto;
+
+        if(!*a.y) {
+            if ((prim = procura_proximo_ativo()) == NULL)
+                volta_dos();
+            p_est->p_destino = prim->contexto;
+        }
         enable();
     }
 }

@@ -3,6 +3,7 @@
 
     Antônio Eugênio Domingues Silva     RA: 161021336
     Thiago Hoffart Vieira               RA: 161026524
+    Lucas Vinhas Gianoglio              RA: 161023584
  
 **************************************************/
 

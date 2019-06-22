@@ -1,4 +1,5 @@
 #include "nucleo3.h"
+FILE *arq_saida;
 
 void far proc_emissor()
 { 
@@ -26,8 +27,10 @@ void far proc_emissor()
         }
 
         recebe(emissor, msgrecebida);
-        printf("\nEMISSOR recebeu %s do processo %s",msgrecebida,emissor);
+        printf("[EMISSOR] RECEBEU %s DO PROCESSO %s\n", msgrecebida, emissor);
+        fprintf(arq_saida, "[EMISSOR] RECEBEU %s DO PROCESSO %s\n", msgrecebida, emissor);
     }
+    fprintf(arq_saida, "[EMISSOR] FIM\n");
     termina_processo();
 }
 
@@ -40,7 +43,8 @@ void far proc_receptor()
     for(i=0;i<100;i++)
     {
         recebe(emissor,msg);
-        printf("\nRECEPTOR recebeu %s do processo %s",msg,emissor);
+        printf("[RECEPTOR] RECEBEU %s DO PROCESSO %s\n", msg, emissor);
+        fprintf(arq_saida, "[RECEPTOR] RECEBEU %s DO PROCESSO %s\n", msg, emissor);
         k = envia("proc_em",msg);
         if (k==0) {
             printf("Não achou destino! Abortar");
@@ -54,12 +58,18 @@ void far proc_receptor()
             };
         }
     }
+    fprintf(arq_saida, "[RECEPTOR] FIM\n");
+    fclose(arq_saida);
     termina_processo();
 }
 
 /* Programa Principal */
 main()
 {
+    if ((arq_saida = fopen("TESTE3.TXT", "w")) == NULL) {
+		printf("\nO arquivo nao pode ser aberto...");
+		exit(1);
+	}
     /* cria processos*/
     cria_processo(proc_emissor,"proc_em", 10);
     cria_processo(proc_receptor,"proc_rec", 10);
