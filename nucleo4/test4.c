@@ -40,6 +40,6 @@ void far processo3(){
 main() {
     cria_processo(processo1, "proc1", 1);
     cria_processo(processo2, "proc2", 2);
-    cria_processo(processo3, "proc3", 3);
+    cria_processo(processo3, "proc3", 5);
     dispara_sistema();
 }
